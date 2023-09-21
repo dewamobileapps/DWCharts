@@ -26,6 +26,8 @@ open class PieChartRenderer: NSObject, DataRenderer
     public let animator: Animator
 
     @objc open weak var chart: PieChartView?
+    
+    var addedPaths:[CGMutablePath]!
 
     @objc public init(chart: PieChartView, animator: Animator, viewPortHandler: ViewPortHandler)
     {
@@ -111,6 +113,7 @@ open class PieChartRenderer: NSObject, DataRenderer
 
     @objc open func drawDataSet(context: CGContext, dataSet: PieChartDataSetProtocol)
     {
+        addedPaths = [CGMutablePath]()
         guard let chart = chart else {return }
 
         var angle: CGFloat = 0.0
@@ -276,6 +279,7 @@ open class PieChartRenderer: NSObject, DataRenderer
 
             context.beginPath()
             context.addPath(path)
+            addedPaths.append(path)
             context.fillPath(using: .evenOdd)
 
             let axElement = createAccessibleElement(withIndex: j,
@@ -370,9 +374,25 @@ open class PieChartRenderer: NSObject, DataRenderer
                 {
                     angle = absoluteAngles[xIndex - 1] * CGFloat(phaseX)
                 }
+                
+                var maxAngle: CGFloat = 0.0
+                var sliceSpace = getSliceSpace(dataSet: dataSet)
+                if let icon = e.icon, dataSet.drawIconsEnabled {
+                    sliceSpace += ((sliceSpace * 2) + (icon.size.width / 2))
+                    let sliceSpaceMiddleAngle = sliceSpace / labelRadius.DEG2RAD
+                    angle = angle + sliceSpaceMiddleAngle
+                    maxAngle = angle + sliceSpaceMiddleAngle
+                }
+                else{
+                    let sliceAngle = drawAngles[xIndex]
+                    let sliceSpaceMiddleAngle = sliceSpace / labelRadius.DEG2RAD
+                    // offset needed to center the drawn text in the slice
+                    let angleOffset = (sliceAngle - sliceSpaceMiddleAngle / 2.0) / 2.0
+                    angle = angle + angleOffset
+                }
 
                 let sliceAngle = drawAngles[xIndex]
-                let sliceSpace = getSliceSpace(dataSet: dataSet)
+//                let sliceSpace = getSliceSpace(dataSet: dataSet)
                 let sliceSpaceMiddleAngle = sliceSpace / labelRadius.DEG2RAD
 
                 // offset needed to center the drawn text in the slice
@@ -381,6 +401,7 @@ open class PieChartRenderer: NSObject, DataRenderer
                 angle = angle + angleOffset
 
                 let transformedAngle = rotationAngle + angle * CGFloat(phaseY)
+                let maxTransformedAngle = rotationAngle + maxAngle * CGFloat(phaseY)
 
                 let value = usePercentValuesEnabled ? e.y / yValueSum * 100.0 : e.y
                 let valueText = formatter.stringForValue(
@@ -391,6 +412,10 @@ open class PieChartRenderer: NSObject, DataRenderer
 
                 let sliceXBase = cos(transformedAngle.DEG2RAD)
                 let sliceYBase = sin(transformedAngle.DEG2RAD)
+                
+                let sliceXBaseMax = cos(maxTransformedAngle.DEG2RAD)
+                let sliceYBaseMax = sin(maxTransformedAngle.DEG2RAD)
+
                 
                 let drawXOutside = sliceAngle > sliceTextDrawingThreshold && drawEntryLabels && xValuePosition == .outsideSlice
                 let drawYOutside = sliceAngle > sliceTextDrawingThreshold && drawValues && yValuePosition == .outsideSlice
@@ -568,9 +593,21 @@ open class PieChartRenderer: NSObject, DataRenderer
                     var y = (labelRadius + iconsOffset.y) * sliceYBase + center.y
                     y += iconsOffset.x
                     
-                    context.drawImage(icon,
-                                      atCenter: CGPoint(x: x, y: y),
-                                      size: icon.size)
+//                    context.drawImage(icon,
+//                                      atCenter: CGPoint(x: x, y: y),
+//                                      size: icon.size)
+                    
+                    let maxX = (labelRadius + iconsOffset.y) * sliceXBaseMax + center.x
+                                       var maxY = (labelRadius + iconsOffset.y) * sliceYBaseMax + center.y
+                                       maxY += iconsOffset.x
+                                       
+                                       let itemPath = addedPaths[j]
+                                                           
+                                       if itemPath.contains(CGPoint(x: x, y: y)) && itemPath.contains(CGPoint(x: maxX, y: maxY)){
+                                           context.drawImage(
+                                            icon, atCenter: CGPoint(x: x, y: y),
+                                                                size: icon.size)
+                                       }
                 }
 
                 xIndex += 1
