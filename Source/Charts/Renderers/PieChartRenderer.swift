@@ -393,12 +393,12 @@ open class PieChartRenderer: NSObject, DataRenderer
 
                 let sliceAngle = drawAngles[xIndex]
 //                let sliceSpace = getSliceSpace(dataSet: dataSet)
-                let sliceSpaceMiddleAngle = sliceSpace / labelRadius.DEG2RAD
-
-                // offset needed to center the drawn text in the slice
-                let angleOffset = (sliceAngle - sliceSpaceMiddleAngle / 2.0) / 2.0
-
-                angle = angle + angleOffset
+//                let sliceSpaceMiddleAngle = sliceSpace / labelRadius.DEG2RAD
+//
+//                // offset needed to center the drawn text in the slice
+//                let angleOffset = (sliceAngle - sliceSpaceMiddleAngle / 2.0) / 2.0
+//
+//                angle = angle + angleOffset
 
                 let transformedAngle = rotationAngle + angle * CGFloat(phaseY)
                 let maxTransformedAngle = rotationAngle + maxAngle * CGFloat(phaseY)
